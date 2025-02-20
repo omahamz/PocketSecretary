@@ -1,13 +1,21 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class GeminiChatbot {
-  final String apiKey;
-  final String baseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+  late String apiKey =
+      const String.fromEnvironment("GEMINI_API_KEY", defaultValue: "");
+  final String baseUrl =
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
 
   GeminiChatbot(this.apiKey);
 
   Future<String> chat(String userMessage) async {
+    // Error Fetch
+    if (apiKey.isEmpty) {
+      return "Error: API key is missing.";
+    }
+
     final uri = Uri.parse("$baseUrl?key=$apiKey");
 
     final response = await http.post(
