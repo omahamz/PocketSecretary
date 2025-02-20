@@ -1,4 +1,4 @@
-# flutter_application_1
+# Pocket Secretary
 
 A new Flutter project.
 
