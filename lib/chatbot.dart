@@ -6,7 +6,7 @@ class GeminiChatbot {
   late String apiKey =
       const String.fromEnvironment("GEMINI_API_KEY", defaultValue: "");
   final String baseUrl =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
   GeminiChatbot(this.apiKey);
 
