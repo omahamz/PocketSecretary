@@ -1,26 +1,43 @@
 import 'package:flutter/material.dart';
 import 'chatbot.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'googleAuth.dart';
 
-void main() {
-  runApp(ChatbotApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load env file
+  await dotenv.load(fileName: ".env");
+
+  // Initialize Supabase with env variables
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      home: Scaffold(
-        appBar: AppBar(title: Text('Hello Flutter')),
-        body: Center(child: Text('Welcome to Flutter!')),
+      title: 'Pocket Secretary',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
       ),
+      home: const LoginScreen(),
     );
   }
 }
 
 class ChatbotApp extends StatefulWidget {
+  const ChatbotApp({super.key});
+
   @override
   _ChatbotAppState createState() => _ChatbotAppState();
 }
@@ -38,10 +55,16 @@ class _ChatbotAppState extends State<ChatbotApp> {
       messages.add({"user": userMessage});
     });
 
-    String botResponse = await chatbot.chat(userMessage);
+    Map<String, dynamic> botResponse = await chatbot.chat(userMessage);
+
+    // Convert the entire response map to a formatted string
+    String responseText = botResponse.entries
+        .map((entry) => "${entry.key}: ${entry.value}")
+        .join('\n');
 
     setState(() {
-      messages.add({"bot": botResponse});
+      messages
+          .add({"bot": (responseText.isEmpty ? 'No response' : responseText)});
     });
   }
 
