@@ -7,13 +7,11 @@ import 'googleAuth.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load env file
   await dotenv.load(fileName: ".env");
 
-  // Initialize Supabase with env variables
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    url: dotenv.env['SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
 
   runApp(const MyApp());
@@ -43,7 +41,7 @@ class ChatbotApp extends StatefulWidget {
 }
 
 class _ChatbotAppState extends State<ChatbotApp> {
-  final chatbot = GeminiChatbot("AIzaSyDjQ6cudgNpvmU0NvTNC3ytrBBFjlqgHzQ");
+  final chatbot = GeminiChatbot(dotenv.env['GEMINI_API_KEY'] ?? "");
   final TextEditingController _controller = TextEditingController();
   List<Map<String, String>> messages = [];
 
@@ -55,16 +53,10 @@ class _ChatbotAppState extends State<ChatbotApp> {
       messages.add({"user": userMessage});
     });
 
-    Map<String, dynamic> botResponse = await chatbot.chat(userMessage);
-
-    // Convert the entire response map to a formatted string
-    String responseText = botResponse.entries
-        .map((entry) => "${entry.key}: ${entry.value}")
-        .join('\n');
+    String botResponse = await chatbot.chat(userMessage);
 
     setState(() {
-      messages
-          .add({"bot": (responseText.isEmpty ? 'No response' : responseText)});
+      messages.add({"bot": botResponse.isEmpty ? 'No response' : botResponse});
     });
   }
 

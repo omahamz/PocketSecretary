@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'chatbot.dart';
-
+import 'chatbot.dart'
 class ProfileScreen extends StatelessWidget {
   final GoogleSignInAccount user;
 
@@ -17,7 +16,7 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const ChatbotScreen()),
+                MaterialPageRoute(builder: (context) => const ChatbotApp()),
               );
             },
             child: const Text('Continue'),
