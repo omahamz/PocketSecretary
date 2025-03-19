@@ -1,0 +1,2 @@
+C:/Users/kabir/OneDrive/Projects/PocketSecretary/PocketSecretary/android/app/.cxx/Debug/m255h184/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/kabir/OneDrive/Projects/PocketSecretary/PocketSecretary/android/app/.cxx/Debug/m255h184/arm64-v8a/CMakeFiles/rebuild_cache.dir
