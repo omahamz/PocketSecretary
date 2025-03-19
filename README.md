@@ -1,16 +1,19 @@
-# flutter_application_1
+# Pocket Secretary
 
-A new Flutter project.
+An AI-powered scheduling assistant that turns everyday language into structured calendar events with seamless Google Calendar integration. Users can effortlessly schedule appointments and recurring events by simply typing prompts like "Doctor’s appointment next Monday at 3 PM" or "Team meeting every Friday at 10 AM." Powered by NLP, the AI detects recurring patterns, automates scheduling, and optimizes reminders based on user preferences. It also supports collaborative scheduling, allowing multiple users to contribute to shared calendars for effortless team coordination, family/friend planning, and project management. Built with Flutter for a smooth cross-platform experience, a Python backend for AI-driven processing, and a NoSQL approach with Firebase Firestore for real-time updates. PoecketSecratary will ensure that time management and keeping up with a schedule is as easy and hassle free as possible. 
 
-## Getting Started
+**Programming Language:** Python, Dart/Flutter
 
-This project is a starting point for a Flutter application.
+**Technology Stack:**
+- Frontend: Flutter Widget Catalog
+- Backend: Python, Firebase Firestore, Hive/Drift
+- API’s: Google Calendar, Gemini
 
-A few resources to get you started if this is your first Flutter project:
+**Helpful Resources:**
 
+- [Flutter Documentation](https://docs.flutter.dev/)
 - [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
 - [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- [Gemini Documentation](https://ai.google.dev/gemini-api/docs)
+
