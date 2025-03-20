@@ -1,17 +1,21 @@
-import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'googleAuth.dart';
+import 'util.dart';
+import 'dart:core';
 
 class GeminiChatbot {
   late String apiKey =
-      const String.fromEnvironment("GEMINI_API_KEY", defaultValue: "");
+      dotenv.env['GEMINI_API_KEY'] ?? "";
   final String baseUrl =
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
   GeminiChatbot(this.apiKey);
 
   Future<String> chat(String userMessage) async {
-    // Error Fetch
     if (apiKey.isEmpty) {
       return "Error: API key is missing.";
     }
