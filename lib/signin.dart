@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'calendar.dart';
 import 'googleauth.dart'; // Import GoogleAuthService
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
@@ -6,8 +7,9 @@ import 'main.dart'; // Import ChatbotApp to navigate after login
 
 class SignInScreen extends StatefulWidget {
   final GoogleAuthService authService;
+  final CalendarService calendarService;
 
-  SignInScreen(this.authService); // Accept authService
+  SignInScreen(this.authService, this.calendarService); // Accept authService
 
   @override
   _SignInScreenState createState() => _SignInScreenState();
@@ -26,7 +28,9 @@ class _SignInScreenState extends State<SignInScreen> {
     if (error == null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => ChatbotApp(widget.authService)),
+        MaterialPageRoute(
+            builder: (context) =>
+                ChatbotApp(widget.authService, widget.calendarService)),
       );
     } else {
       ScaffoldMessenger.of(context)
