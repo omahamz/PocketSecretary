@@ -3,13 +3,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'googleauth.dart';
 import 'signin.dart';
 import 'chatbot.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'googleAuth.dart';
+
 import 'calendar.dart'; // Import the CalendarService
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: ".env");
+
   await Supabase.initialize(
-    url: 'https://qthipgkobnvhwsmxiuyn.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0aGlwZ2tvYm52aHdzbXhpdXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA2MDQ2ODAsImV4cCI6MjA1NjE4MDY4MH0.DJkQAhPO3aSus1NyWmImErutMd3781a2BY3f7IUc9zM',
+    url: dotenv.env['SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
 
   runApp(MyApp());
@@ -50,11 +57,14 @@ class ChatbotApp extends StatefulWidget {
 
   ChatbotApp(this.authService, this.calendarService);
 
+
   @override
   _ChatbotAppState createState() => _ChatbotAppState();
 }
 
 class _ChatbotAppState extends State<ChatbotApp> {
+  final chatbot = GeminiChatbot(dotenv.env['GEMINI_API_KEY'] ?? "");
+
   final TextEditingController _controller = TextEditingController();
   List<Map<String, String>> messages = [];
   List<String> _eventTitles = [];
@@ -83,7 +93,7 @@ class _ChatbotAppState extends State<ChatbotApp> {
     String botResponse = await GeminiChatbot("API_KEY").chat(userMessage);
 
     setState(() {
-      messages.add({"bot": botResponse});
+      messages.add({"bot": botResponse.isEmpty ? 'No response' : botResponse});
     });
   }
 

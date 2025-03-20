@@ -1,0 +1,2 @@
+C:/Users/Ali/Documents/PocketSecretary/android/app/.cxx/Debug/31x6a174/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/Ali/Documents/PocketSecretary/android/app/.cxx/Debug/31x6a174/armeabi-v7a/CMakeFiles/rebuild_cache.dir
