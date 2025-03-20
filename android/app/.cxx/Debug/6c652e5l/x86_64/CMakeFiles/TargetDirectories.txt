@@ -1,0 +1,2 @@
+C:/Users/Ali/Documents/projects/PocketSecretary/android/app/.cxx/Debug/6c652e5l/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/Ali/Documents/projects/PocketSecretary/android/app/.cxx/Debug/6c652e5l/x86_64/CMakeFiles/rebuild_cache.dir

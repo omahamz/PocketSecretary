@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:googleapis/calendar/v3.dart' as calendar;
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GoogleAuthService {
   final SupabaseClient supabase;
@@ -16,10 +17,8 @@ class GoogleAuthService {
             'profile',
             'https://www.googleapis.com/auth/calendar.events', // Google Calendar scope
           ],
-          clientId:
-              '87171208864-1lnr6nt7o2cjcv5fa75r477c9hl1h99t.apps.googleusercontent.com',
-          serverClientId:
-              '87171208864-jpf59eh2tq90l697v86244otl8jspbl9.apps.googleusercontent.com',
+          // For Android, we don't need to specify clientId here
+          serverClientId: dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ?? '',
         );
 
   GoogleSignInAccount? _user;

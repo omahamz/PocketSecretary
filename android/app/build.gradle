@@ -1,57 +1,78 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new FileNotFoundException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+}
+
+def envFile = new File(project.rootProject.projectDir.parentFile, '.env')
+def properties = new Properties()
+if (envFile.exists()) {
+    envFile.withReader('UTF-8') { reader ->
+        properties.load(reader)
+    }
+}
+
 android {
-    namespace = "com.example.flutter_application_1"
-    compileSdk = flutter.compileSdkVersion
+    namespace properties.getProperty('APP_PACKAGE_NAME', 'com.pocketsecretary.app')
+    compileSdkVersion flutter.compileSdkVersion
     ndkVersion "27.0.12077973"
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.flutter_application_1"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        applicationId properties.getProperty('APP_PACKAGE_NAME', 'com.pocketsecretary.app')
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode 1
+        versionName "1.0.0"
         multiDexEnabled true
 
-        // Add OpenGL ES version requirement
-        ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"
-        }
+        manifestPlaceholders = [
+            'GOOGLE_CLIENT_ID': properties.getProperty('GOOGLE_CLIENT_ID', ''),
+            'GOOGLE_SERVER_CLIENT_ID': properties.getProperty('GOOGLE_SERVER_CLIENT_ID', ''),
+            'applicationName': '.Application',
+            'APP_PACKAGE_NAME': properties.getProperty('APP_PACKAGE_NAME', 'com.pocketsecretary.app')
+        ]
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            signingConfig signingConfigs.debug
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
         debug {
-            signingConfig = signingConfigs.debug
+            signingConfig signingConfigs.debug
         }
     }
 }
 
 flutter {
-    source = "../.."
+    source '../..'
 }
 
 dependencies {
@@ -59,5 +80,4 @@ dependencies {
     implementation 'com.google.android.gms:play-services-auth:20.7.0'
     implementation 'com.google.android.gms:play-services-base:18.2.0'
     implementation 'androidx.browser:browser:1.7.0'
-
 }

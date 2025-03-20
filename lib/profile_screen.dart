@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'chatbot.dart'
+import 'main.dart';
+import 'googleauth.dart';
+import 'calendar.dart';
+
 class ProfileScreen extends StatelessWidget {
   final GoogleSignInAccount user;
+  final GoogleAuthService authService;
+  final CalendarService calendarService;
 
-  const ProfileScreen({super.key, required this.user});
+  const ProfileScreen({
+    super.key,
+    required this.user,
+    required this.authService,
+    required this.calendarService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +26,10 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const ChatbotApp()),
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ChatbotApp(authService, calendarService),
+                ),
               );
             },
             child: const Text('Continue'),

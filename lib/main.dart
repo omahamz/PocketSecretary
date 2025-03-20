@@ -3,10 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'googleauth.dart';
 import 'signin.dart';
 import 'chatbot.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'googleAuth.dart';
-
 import 'calendar.dart'; // Import the CalendarService
 
 void main() async {
@@ -56,7 +53,6 @@ class ChatbotApp extends StatefulWidget {
   final CalendarService calendarService; // Add CalendarService
 
   ChatbotApp(this.authService, this.calendarService);
-
 
   @override
   _ChatbotAppState createState() => _ChatbotAppState();
