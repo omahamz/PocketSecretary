@@ -1,0 +1,2 @@
+C:/Users/kabir/OneDrive/Projects/PocketSecretary/PocketSecretary/android/app/.cxx/RelWithDebInfo/3x221y1o/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/kabir/OneDrive/Projects/PocketSecretary/PocketSecretary/android/app/.cxx/RelWithDebInfo/3x221y1o/armeabi-v7a/CMakeFiles/rebuild_cache.dir
