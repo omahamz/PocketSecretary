@@ -7,24 +7,53 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:flutter_application_1/main.dart';
+import 'package:pocket_secretary/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    //await tester.pumpWidget(const MyApp());
+  setUpAll(() async {
+    // Mock shared_preferences
+    SharedPreferences.setMockInitialValues({});
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Load environment variables
+    await dotenv.load(fileName: ".env");
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Initialize Supabase for testing
+    await Supabase.initialize(
+      url: dotenv.env['SUPABASE_URL'] ?? '',
+      anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    );
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('App should render successfully', (WidgetTester tester) async {
+    // Build the app
+    await tester.pumpWidget(MyApp());
+    await tester.pumpAndSettle(); // Ensure all animations complete
+
+    // Verify that app renders without errors
+    expect(find.byType(MaterialApp), findsOneWidget);
+  });
+
+  testWidgets('App should have basic structure', (WidgetTester tester) async {
+    await tester.pumpWidget(MyApp());
+    await tester.pumpAndSettle(); // Ensure all animations complete
+
+    // Check for common Flutter widgets that should be in almost any app
+    expect(find.byType(Text), findsWidgets);
+    expect(find.byType(Container), findsWidgets);
+
+    // Instead of looking for specific text, check for widgets by type
+    expect(find.byType(Scaffold), findsWidgets); // Most apps have a Scaffold
+
+    // Print all text in the app to help debug what text is actually available
+    final textWidgets = tester.widgetList(find.byType(Text));
+    debugPrint('Found ${textWidgets.length} Text widgets in the app:');
+    for (final widget in textWidgets) {
+      final textWidget = widget as Text;
+      debugPrint('- Text: "${textWidget.data}"');
+    }
   });
 }
