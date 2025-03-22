@@ -20,6 +20,8 @@ void main() async {
 }
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
   _MyAppState createState() => _MyAppState();
 }
@@ -52,7 +54,7 @@ class ChatbotApp extends StatefulWidget {
   final GoogleAuthService authService;
   final CalendarService calendarService; // Add CalendarService
 
-  ChatbotApp(this.authService, this.calendarService);
+  const ChatbotApp(this.authService, this.calendarService, {super.key});
 
   @override
   _ChatbotAppState createState() => _ChatbotAppState();
@@ -60,16 +62,16 @@ class ChatbotApp extends StatefulWidget {
 
 class _ChatbotAppState extends State<ChatbotApp> {
   final chatbot = GeminiChatbot(dotenv.env['GEMINI_API_KEY'] ?? "");
-
   final TextEditingController _controller = TextEditingController();
   List<Map<String, String>> messages = [];
   List<String> _eventTitles = [];
   String? _userId;
+  bool _showEvents = false; // Track which view to show
 
   @override
   void initState() {
     super.initState();
-    _fetchEvents(); // Fetch events on startup
+    _fetchEvents();
 
     widget.authService.supabase.auth.onAuthStateChange.listen((data) {
       setState(() {
@@ -86,10 +88,35 @@ class _ChatbotAppState extends State<ChatbotApp> {
       messages.add({"user": userMessage});
     });
 
-    String botResponse = await GeminiChatbot("API_KEY").chat(userMessage);
+    Map<String, dynamic> botResponse = await chatbot.chat(userMessage);
+
+    // Handle event creation if response contains event details
+    if (botResponse.containsKey('event_title')) {
+      try {
+        final date = botResponse['date'] as String;
+        final time = botResponse['time'] as String;
+        final endTime = botResponse['end_time'] as String;
+
+        // Parse date and time strings to DateTime
+        final startDateTime = DateTime.parse('${date}T${time}');
+        final endDateTime = DateTime.parse('${date}T${endTime}');
+
+        await widget.calendarService.createEvent(
+          botResponse['event_title'],
+          startDateTime,
+          endDateTime,
+        );
+
+        _fetchEvents(); // Refresh events after creating
+      } catch (e) {
+        print('Error creating event: $e');
+      }
+    }
 
     setState(() {
-      messages.add({"bot": botResponse.isEmpty ? 'No response' : botResponse});
+      messages.add({
+        "bot": botResponse.isEmpty ? 'No response' : botResponse.toString()
+      });
     });
   }
 
@@ -128,11 +155,25 @@ class _ChatbotAppState extends State<ChatbotApp> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Gemini Chatbot"),
+        title: Text(_showEvents ? "Calendar Events" : "Pocket Secretary"),
         actions: [
+          if (_showEvents)
+            IconButton(
+              icon: Icon(Icons.refresh),
+              onPressed: _fetchEvents,
+            ),
+          // Toggle button
+          IconButton(
+            icon: Icon(_showEvents ? Icons.chat : Icons.calendar_today),
+            onPressed: () {
+              setState(() {
+                _showEvents = !_showEvents;
+              });
+            },
+          ),
           if (profileImageUrl != null)
             GestureDetector(
-              onTap: _signOut, // Tap to sign out
+              onTap: _signOut,
               child: Padding(
                 padding: EdgeInsets.only(right: 12.0),
                 child: CircleAvatar(
@@ -140,50 +181,76 @@ class _ChatbotAppState extends State<ChatbotApp> {
                 ),
               ),
             ),
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _fetchEvents, // Manually refresh events
-          ),
         ],
       ),
       body: Column(
         children: [
-          Text(_userId ?? 'Not signed in'),
-          ElevatedButton(
-            onPressed: _createSampleEvent,
-            child: Text("Create Sample Event"),
-          ),
           Expanded(
-            child: _eventTitles.isEmpty
-                ? Center(child: Text("No events found"))
-                : ListView.builder(
-                    itemCount: _eventTitles.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text(_eventTitles[index]),
-                      );
-                    },
-                  ),
+            child: _showEvents ? _buildEventsView() : _buildChatView(),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: InputDecoration(hintText: "Type a message..."),
+          if (!_showEvents) // Only show message input in chat view
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      decoration:
+                          InputDecoration(hintText: "Type a message..."),
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.send),
-                  onPressed: sendMessage,
-                ),
-              ],
+                  IconButton(
+                    icon: Icon(Icons.send),
+                    onPressed: sendMessage,
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEventsView() {
+    return Column(
+      children: [
+        ElevatedButton(
+          onPressed: _createSampleEvent,
+          child: Text("Create Sample Event"),
+        ),
+        Expanded(
+          child: _eventTitles.isEmpty
+              ? Center(child: Text("No events found"))
+              : ListView.builder(
+                  itemCount: _eventTitles.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(_eventTitles[index]),
+                      leading: Icon(Icons.event),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChatView() {
+    return ListView.builder(
+      itemCount: messages.length,
+      padding: EdgeInsets.all(8.0),
+      itemBuilder: (context, index) {
+        final message = messages[index];
+        final isUser = message.containsKey('user');
+        return ListTile(
+          title: Text(message.values.first),
+          leading: Icon(
+            isUser ? Icons.person : Icons.android,
+            color: isUser ? Colors.blue : Colors.green,
+          ),
+        );
+      },
     );
   }
 }
