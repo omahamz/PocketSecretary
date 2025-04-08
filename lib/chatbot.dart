@@ -9,11 +9,24 @@ class GeminiChatbot {
 
   GeminiChatbot(String apiKey)
       : model = GenerativeModel(
-          model: 'tunedModels/copy-of-pocketsecretary-w4v9pijadgvp',
+          model: 'gemini-2.0-flash',
           apiKey: apiKey,
         );
 
-  Future<Map<String, dynamic>> chat(String message) async {
+  Future<String> chat(String message) async {
+    final content = [Content.text(message)];
+    final response = await model.generateContent(content);
+    try {
+      final text = response.text ?? "no response"; // fallback if null
+      print(text);
+      return text;
+    } catch (e) {
+      debugPrint('Chatbot error: $e');
+      return "no responcse";
+    }
+  }
+
+  Future<Map<String, dynamic>> structuredChat(String message) async {
     try {
       final content = [Content.text(message)];
       final response = await model.generateContent(content);
@@ -21,7 +34,7 @@ class GeminiChatbot {
       return parseJson(trimJson(response.text ?? ''));
     } catch (e) {
       debugPrint('Chatbot error: $e');
-      return {};
+      return {"content": message};
     }
   }
 }
@@ -64,19 +77,22 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       ));
     });
 
-    final botResponse = await _chatbot.chat(userMessage);
-    final formattedResponse = _formatBotResponse(botResponse);
+    String botResponse = await _chatbot.chat(userMessage);
+    Map<String, dynamic> strResponse =
+        await _chatbot.structuredChat(userMessage);
+
+    final formattedResponse = _formatBotResponse(strResponse);
 
     setState(() {
       _messages.add(ChatMessage(
-        text: formattedResponse,
+        text: botResponse,
         isUser: false,
       ));
     });
   }
 
   String _formatBotResponse(Map<String, dynamic> response) {
-    if (response.isEmpty) return 'No response';
+    if (response.isEmpty) return "No response";
     return response.entries
         .map((entry) => "${entry.key}: ${entry.value}")
         .join('\n');

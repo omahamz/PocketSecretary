@@ -5,6 +5,8 @@ import 'signin.dart';
 import 'chatbot.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'calendar.dart'; // Import the CalendarService
+import 'package:formatted_text/formatted_text.dart';
+import 'package:chrono_dart/chrono_dart.dart' show Chrono;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,7 +90,10 @@ class _ChatbotAppState extends State<ChatbotApp> {
       messages.add({"user": userMessage});
     });
 
-    Map<String, dynamic> botResponse = await chatbot.chat(userMessage);
+    Map<String, dynamic> botResponse =
+        await chatbot.structuredChat(userMessage);
+    String tempChatbotResponse = await chatbot.chat(userMessage);
+    String dateTimeInfo = Chrono.parseDate(tempChatbotResponse).toString();
 
     // Handle event creation if response contains event details
     if (botResponse.containsKey('event_title')) {
@@ -98,8 +103,8 @@ class _ChatbotAppState extends State<ChatbotApp> {
         final endTime = botResponse['end_time'] as String;
 
         // Parse date and time strings to DateTime
-        final startDateTime = DateTime.parse('${date}T${time}');
-        final endDateTime = DateTime.parse('${date}T${endTime}');
+        final startDateTime = DateTime.parse('${date}T$time');
+        final endDateTime = DateTime.parse('${date}T$endTime');
 
         await widget.calendarService.createEvent(
           botResponse['event_title'],
@@ -115,7 +120,9 @@ class _ChatbotAppState extends State<ChatbotApp> {
 
     setState(() {
       messages.add({
-        "bot": botResponse.isEmpty ? 'No response' : botResponse.toString()
+        "bot": botResponse.isEmpty
+            ? "$tempChatbotResponse\n$dateTimeInfo"
+            : botResponse.toString()
       });
     });
   }
@@ -244,7 +251,10 @@ class _ChatbotAppState extends State<ChatbotApp> {
         final message = messages[index];
         final isUser = message.containsKey('user');
         return ListTile(
-          title: Text(message.values.first),
+          title: FormattedText(
+            message.values.first,
+            textAlign: TextAlign.left,
+          ),
           leading: Icon(
             isUser ? Icons.person : Icons.android,
             color: isUser ? Colors.blue : Colors.green,

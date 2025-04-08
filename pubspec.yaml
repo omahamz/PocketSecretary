@@ -45,6 +45,8 @@ dependencies:
   googleapis: ^14.0.0
   extension_google_sign_in_as_googleapis_auth: ^2.0.12
   supabase_flutter: ^2.8.4
+  formatted_text: ^4.0.1
+  chrono_dart: ^2.0.2
 
 dev_dependencies:
   flutter_test:
