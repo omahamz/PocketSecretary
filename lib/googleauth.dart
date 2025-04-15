@@ -69,6 +69,29 @@ class GoogleAuthService {
     }
   }
 
+  Future<int?> reAuthenticatClient() async {
+    final googleUser = await GoogleSignIn(
+      scopes: ['https://www.googleapis.com/auth/calendar.events'],
+    ).signInSilently();
+
+    final googleAuth = await googleUser!.authentication;
+
+    final authClient = auth.authenticatedClient(
+      http.Client(),
+      auth.AccessCredentials(
+        auth.AccessToken(
+          'Bearer',
+          googleAuth.accessToken!,
+          DateTime.now().toUtc().add(Duration(
+              seconds: 3600)), // Fake expiry is fine for short-lived clients
+        ),
+        null,
+        ['https://www.googleapis.com/auth/calendar.events'],
+      ),
+    );
+    return 0;
+  }
+
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await supabase.auth.signOut();

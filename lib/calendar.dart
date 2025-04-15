@@ -25,6 +25,7 @@ class CalendarService {
   /// ✅ Create a Google Calendar Event
   Future<calendar.Event?> createEvent(
       String title, DateTime start, DateTime end) async {
+    authService.reAuthenticatClient();
     final auth.AuthClient? client = authService.getAuthClient();
     if (client == null) {
       print("User is not authenticated, skipping event creation.");
