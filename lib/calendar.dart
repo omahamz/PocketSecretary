@@ -23,8 +23,8 @@ class CalendarService {
   }
 
   /// ✅ Create a Google Calendar Event
-  Future<calendar.Event?> createEvent(
-      String title, DateTime start, DateTime end) async {
+  Future<calendar.Event?> createEvent(String title, DateTime start,
+      DateTime? end, List<String>? recurrence) async {
     authService.reAuthenticatClient();
     final auth.AuthClient? client = authService.getAuthClient();
     if (client == null) {
@@ -40,11 +40,13 @@ class CalendarService {
         ..dateTime = start.toUtc()
         ..timeZone = "UTC")
       ..end = (calendar.EventDateTime()
-        ..dateTime = end.toUtc()
-        ..timeZone = "UTC");
+        ..dateTime = end?.toUtc()
+        ..timeZone = "UTC")
+      ..recurrence = recurrence;
 
+    print("Start: ${start}\n End: ${end}\n Recurrence: ${recurrence}");
     final createdEvent = await calendarApi.events.insert(event, "primary");
-    print("End time: ${end}");
+
     print("Event created: ${createdEvent.htmlLink}");
     return createdEvent;
   }

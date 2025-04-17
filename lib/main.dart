@@ -87,6 +87,31 @@ class _ChatbotAppState extends State<ChatbotApp> {
     });
   }
 
+  //Checks if the endDateTime contains a date.
+  bool containsDateInfo(String expression) {
+    final lower = expression.toLowerCase();
+
+    final datePattern = RegExp(
+      r'\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow|next|[0-9]{1,2}(st|nd|rd|th)?|[0-9]{4}-[0-9]{2}-[0-9]{2}|[a-z]+ \d{1,2})\b',
+      caseSensitive: false,
+    );
+
+    return datePattern.hasMatch(lower);
+  }
+
+  // If endDateTime does not contain a date, make the date the same as startDate
+  // Otherwise, leave it alone
+  DateTime? parseAnchoredEndTime(String endExpr, DateTime startDate) {
+    if (containsDateInfo(endExpr)) {
+      return Chrono.parseDate(endExpr); // it already has a date
+    }
+
+    // Anchor it to the start date
+    final dateStr =
+        "${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}";
+    return Chrono.parseDate("$endExpr on $dateStr");
+  }
+
   void sendMessage() async {
     String userMessage = _controller.text;
     _controller.clear();
@@ -106,32 +131,55 @@ class _ChatbotAppState extends State<ChatbotApp> {
     // Handle event creation if response contains event details
     if (botResponse.containsKey('title')) {
       try {
-        DateTime? startDateTime =
-            Chrono.parseDate(botResponse['start_time_expression'] as String);
-        //DateTime? endDateTime;
-        DateTime? endDateTime =
-            Chrono.parseDate(botResponse['end_time_expression'] as String) ??
-                null;
+        final rawStart = botResponse['start_time_expression'] as String;
+        final rawEnd = botResponse['end_time_expression'] as String?;
+
+        DateTime? startDateTime = Chrono.parseDate(rawStart);
+        DateTime? endDateTime;
 
         if (startDateTime != null) {
-          if (botResponse.containsKey('end_time_expression') &&
-              (botResponse['end_time_expression'] as String)
-                  .trim()
-                  .isNotEmpty) {
-            endDateTime = Chrono.parseDate(botResponse['end_time_expression']);
+          // Add a date to endDateTime
+          if (rawEnd != null && rawEnd.trim().isNotEmpty) {
+            endDateTime = parseAnchoredEndTime(rawEnd, startDateTime);
           }
 
-          // fallback to 1 hour after start time
-          endDateTime ??= startDateTime.add(const Duration(hours: 1));
+          // fallback if still null or before start
+          if (endDateTime == null || !endDateTime.isAfter(startDateTime!)) {
+            endDateTime = startDateTime?.add(Duration(hours: 1));
+          }
 
           // Update botResponse
           botResponse['start_time_expression'] = startDateTime;
           botResponse['end_time_expression'] = endDateTime;
 
+          // Recurrence rule (if needed)
+          String? frequency = botResponse['recurrence_frequency'];
+          String? interval = botResponse['recurrence_interval'];
+          String? days = botResponse['recurrence_days'];
+
+          List<String>? recurrenceRule;
+
+          if (frequency != null && frequency.trim().isNotEmpty) {
+            String rule = 'RRULE:FREQ=${frequency.toUpperCase()}';
+
+            if (interval != null && interval.trim().isNotEmpty) {
+              rule += ';INTERVAL=$interval';
+            }
+
+            if (days != null && days.trim().isNotEmpty) {
+              rule += ';BYDAY=${days.replaceAll(" ", "")}';
+            }
+
+            recurrenceRule = [rule];
+          }
+
+          print("Recurrence rule: ${recurrenceRule}");
+
           final currentEvent = await widget.calendarService.createEvent(
             botResponse['title'],
             startDateTime,
             endDateTime,
+            recurrenceRule,
           );
 
           botResponse.addAll({"url": currentEvent?.htmlLink});
@@ -201,14 +249,14 @@ class _ChatbotAppState extends State<ChatbotApp> {
   }
 
   /// ✅ Create a Sample Event (for testing)
-  Future<void> _createSampleEvent() async {
-    await widget.calendarService.createEvent(
-      "Test Meeting",
-      DateTime.now().add(Duration(days: 1, hours: 9)), // Tomorrow at 9 AM
-      DateTime.now().add(Duration(days: 1, hours: 10)), // Tomorrow at 10 AM
-    );
-    _fetchEvents(); // Refresh events after creating
-  }
+  // Future<void> _createSampleEvent() async {
+  //   await widget.calendarService.createEvent(
+  //     "Test Meeting",
+  //     DateTime.now().add(Duration(days: 1, hours: 9)), // Tomorrow at 9 AM
+  //     DateTime.now().add(Duration(days: 1, hours: 10)), // Tomorrow at 10 AM
+  //   );
+  //   _fetchEvents(); // Refresh events after creating
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -276,10 +324,10 @@ class _ChatbotAppState extends State<ChatbotApp> {
   Widget _buildEventsView() {
     return Column(
       children: [
-        ElevatedButton(
-          onPressed: _createSampleEvent,
-          child: Text("Create Sample Event"),
-        ),
+        // ElevatedButton(
+        //   onPressed: _createSampleEvent,
+        //   child: Text("Create Sample Event"),
+        // ),
         Expanded(
           child: _eventTitles.isEmpty
               ? Center(child: Text("No events found"))
