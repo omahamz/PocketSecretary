@@ -44,6 +44,7 @@ class CalendarService {
         ..timeZone = "UTC");
 
     final createdEvent = await calendarApi.events.insert(event, "primary");
+    print("End time: ${end}");
     print("Event created: ${createdEvent.htmlLink}");
     return createdEvent;
   }

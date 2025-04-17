@@ -108,15 +108,23 @@ class _ChatbotAppState extends State<ChatbotApp> {
       try {
         DateTime? startDateTime =
             Chrono.parseDate(botResponse['start_time_expression'] as String);
-        DateTime? endDateTime;
-        // DateTime? endDateTime =
-        //     Chrono.parseDate(botResponse['end_time_expression'] as String) ??
-        //         null;
+        //DateTime? endDateTime;
+        DateTime? endDateTime =
+            Chrono.parseDate(botResponse['end_time_expression'] as String) ??
+                null;
 
         if (startDateTime != null) {
-          // if the start time is not null and end time is then end time is set to an hour after start time
-          endDateTime = startDateTime.add(const Duration(hours: 1));
+          if (botResponse.containsKey('end_time_expression') &&
+              (botResponse['end_time_expression'] as String)
+                  .trim()
+                  .isNotEmpty) {
+            endDateTime = Chrono.parseDate(botResponse['end_time_expression']);
+          }
 
+          // fallback to 1 hour after start time
+          endDateTime ??= startDateTime.add(const Duration(hours: 1));
+
+          // Update botResponse
           botResponse['start_time_expression'] = startDateTime;
           botResponse['end_time_expression'] = endDateTime;
 
@@ -128,6 +136,7 @@ class _ChatbotAppState extends State<ChatbotApp> {
 
           botResponse.addAll({"url": currentEvent?.htmlLink});
         }
+
         _fetchEvents(); // Refresh events after creating
       } catch (e) {
         print('Error creating event: $e');
