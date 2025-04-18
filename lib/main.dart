@@ -8,6 +8,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'calendar.dart'; // Import the CalendarService
 import 'package:formatted_text/formatted_text.dart';
 import 'package:chrono_dart/chrono_dart.dart' show Chrono;
+import 'package:url_launcher/url_launcher.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -381,10 +382,22 @@ class _ChatbotAppState extends State<ChatbotApp> {
                         null
                 ? Text("")
                 : ElevatedButton(
-                    onPressed: () =>
-                        {print(message.values.first["eventData"]["url"])},
+                    onPressed: () async {
+                      final url = Uri.parse(
+                          message.values.first["eventData"]["url"] ?? "");
+
+                      //If url can be launched in google calendar then do that, else open in web
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url,
+                            mode: LaunchMode.externalApplication);
+                      } else {
+                        print("Could not launch calendar link");
+                      }
+                    },
                     child: FormattedText(
-                        "${message.values.first["eventData"]?["title"] ?? ""}\n${message.values.first["eventData"]?["start_time_expression"] ?? ""}")))
+                        "${message.values.first["eventData"]?["title"] ?? ""}\n"
+                        "${message.values.first["eventData"]?["start_time_expression"] ?? ""}\n"
+                        "📅 View in Calendar")))
           ]),
         );
       },

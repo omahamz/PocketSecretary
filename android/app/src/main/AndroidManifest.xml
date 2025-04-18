@@ -55,5 +55,8 @@
         <!-- Required for Google Sign-in -->
         <package android:name="com.google.android.gms" />
         <package android:name="com.google.android.apps.auth" />
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
     </queries>
 </manifest>
