@@ -175,6 +175,7 @@ class _ChatbotAppState extends State<ChatbotApp> {
 
           print("Recurrence rule: ${recurrenceRule}");
 
+          // Create the actual event
           final currentEvent = await widget.calendarService.createEvent(
             botResponse['title'],
             startDateTime,
@@ -199,7 +200,7 @@ class _ChatbotAppState extends State<ChatbotApp> {
                 "eventData": null,
               }
             : {
-                "Content": "$aiResponse}",
+                "Content": "$aiResponse",
                 "eventData": botResponse,
               }
       });

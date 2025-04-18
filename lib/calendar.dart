@@ -7,7 +7,7 @@ class CalendarService {
 
   CalendarService(this.authService);
 
-  /// ✅ Fetch User's Calendar Events
+  // Fetch User's Calendar Events
   Future<List<calendar.Event>> fetchEvents() async {
     final auth.AuthClient? client = authService.getAuthClient();
     if (client == null) {
@@ -22,7 +22,7 @@ class CalendarService {
     return events.items ?? [];
   }
 
-  /// ✅ Create a Google Calendar Event
+  // Create a Google Calendar Event
   Future<calendar.Event?> createEvent(String title, DateTime start,
       DateTime? end, List<String>? recurrence) async {
     authService.reAuthenticatClient();
