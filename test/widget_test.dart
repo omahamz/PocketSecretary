@@ -5,8 +5,10 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
+import 'package:chrono_dart/chrono_dart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_secretary/util.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,5 +57,36 @@ void main() {
       final textWidget = widget as Text;
       debugPrint('- Text: "${textWidget.data}"');
     }
+  });
+
+  test("eventParseing", () {
+    /*
+      title: Soccer
+      description: 
+      location: Sage Park
+      start_time_expression: 5:00 PM
+      end_time_expression: 7:00 PM
+      is_recurring: false
+      recurrence_frequency: 
+      recurrence_interval: 
+      recurrence_days:
+     */
+
+    String data =
+        "title: Soccer \ndescription: \nlocation: Sage Park \nstart_time_expression: 5:00 PM \nend_time_expression: 7:00 PM \nis_recurring: false \nrecurrence_frequency: \nrecurrence_interval: \nrecurrence_days:";
+
+    Map<String, dynamic> expectedResult = {
+      "title": "Soccer",
+      "description": "",
+      "location": "Sage Park",
+      "start_time_expression": Chrono.parseDate("5:00 PM"),
+      "end_time_expression": Chrono.parseDate("7:00 PM"),
+      "is_recurring": "false",
+      "recurrence_frequency": "",
+      "recurrence_interval": "",
+      "recurrence_days": ""
+    };
+
+    expect(eventParseing(data), equals(expectedResult));
   });
 }

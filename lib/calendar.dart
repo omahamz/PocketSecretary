@@ -7,7 +7,7 @@ class CalendarService {
 
   CalendarService(this.authService);
 
-  /// ✅ Fetch User's Calendar Events
+  // Fetch User's Calendar Events
   Future<List<calendar.Event>> fetchEvents() async {
     final auth.AuthClient? client = authService.getAuthClient();
     if (client == null) {
@@ -22,9 +22,10 @@ class CalendarService {
     return events.items ?? [];
   }
 
-  /// ✅ Create a Google Calendar Event
-  Future<calendar.Event?> createEvent(
-      String title, DateTime start, DateTime end) async {
+  // Create a Google Calendar Event
+  Future<calendar.Event?> createEvent(String title, DateTime start,
+      DateTime? end, List<String>? recurrence) async {
+    authService.reAuthenticatClient();
     final auth.AuthClient? client = authService.getAuthClient();
     if (client == null) {
       print("User is not authenticated, skipping event creation.");
@@ -39,10 +40,13 @@ class CalendarService {
         ..dateTime = start.toUtc()
         ..timeZone = "UTC")
       ..end = (calendar.EventDateTime()
-        ..dateTime = end.toUtc()
-        ..timeZone = "UTC");
+        ..dateTime = end?.toUtc()
+        ..timeZone = "UTC")
+      ..recurrence = recurrence;
 
+    print("Start: ${start}\n End: ${end}\n Recurrence: ${recurrence}");
     final createdEvent = await calendarApi.events.insert(event, "primary");
+
     print("Event created: ${createdEvent.htmlLink}");
     return createdEvent;
   }

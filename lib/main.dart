@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:googleapis/chat/v1.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'googleauth.dart';
 import 'signin.dart';
 import 'chatbot.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'calendar.dart'; // Import the CalendarService
+import 'package:formatted_text/formatted_text.dart';
+import 'package:chrono_dart/chrono_dart.dart' show Chrono;
+import 'package:url_launcher/url_launcher.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,12 +65,16 @@ class ChatbotApp extends StatefulWidget {
 }
 
 class _ChatbotAppState extends State<ChatbotApp> {
-  final chatbot = GeminiChatbot(dotenv.env['GEMINI_API_KEY'] ?? "");
+  final chatbot =
+      GeminiChatbot(dotenv.env['GEMINI_API_KEY'] ?? "", "gemini-2.0-flash");
+  final EventChatbot = GeminiChatbot(dotenv.env['GEMINI_API_KEY'] ?? "",
+      'tunedModels/pocketsecretary-2-92sl5cmi8s2j');
   final TextEditingController _controller = TextEditingController();
-  List<Map<String, String>> messages = [];
+  List<Map<String, Map<String, dynamic>>> messages = [];
   List<String> _eventTitles = [];
   String? _userId;
   bool _showEvents = false; // Track which view to show
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -80,32 +88,104 @@ class _ChatbotAppState extends State<ChatbotApp> {
     });
   }
 
+  //Checks if the endDateTime contains a date.
+  bool containsDateInfo(String expression) {
+    final lower = expression.toLowerCase();
+
+    final datePattern = RegExp(
+      r'\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow|next|[0-9]{1,2}(st|nd|rd|th)?|[0-9]{4}-[0-9]{2}-[0-9]{2}|[a-z]+ \d{1,2})\b',
+      caseSensitive: false,
+    );
+
+    return datePattern.hasMatch(lower);
+  }
+
+  // If endDateTime does not contain a date, make the date the same as startDate
+  // Otherwise, leave it alone
+  DateTime? parseAnchoredEndTime(String endExpr, DateTime startDate) {
+    if (containsDateInfo(endExpr)) {
+      return Chrono.parseDate(endExpr); // it already has a date
+    }
+
+    // Anchor it to the start date
+    final dateStr =
+        "${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}";
+    return Chrono.parseDate("$endExpr on $dateStr");
+  }
+
   void sendMessage() async {
     String userMessage = _controller.text;
     _controller.clear();
 
     setState(() {
-      messages.add({"user": userMessage});
+      messages.add({
+        "user": {"Content": userMessage}
+      });
     });
 
-    Map<String, dynamic> botResponse = await chatbot.chat(userMessage);
+    Map<String, dynamic> botResponse =
+        await EventChatbot.structuredChat(userMessage);
+    //basic text response
+    String aiResponse = await chatbot.chat(
+        "$userMessage add that to my calander. make sure the response is a short comment on the event less then 100words. this is the structured event info${botResponse.toString()}");
 
     // Handle event creation if response contains event details
-    if (botResponse.containsKey('event_title')) {
+    if (botResponse.containsKey('title')) {
       try {
-        final date = botResponse['date'] as String;
-        final time = botResponse['time'] as String;
-        final endTime = botResponse['end_time'] as String;
+        final rawStart = botResponse['start_time_expression'] as String;
+        final rawEnd = botResponse['end_time_expression'] as String?;
 
-        // Parse date and time strings to DateTime
-        final startDateTime = DateTime.parse('${date}T${time}');
-        final endDateTime = DateTime.parse('${date}T${endTime}');
+        DateTime? startDateTime = Chrono.parseDate(rawStart);
+        DateTime? endDateTime;
 
-        await widget.calendarService.createEvent(
-          botResponse['event_title'],
-          startDateTime,
-          endDateTime,
-        );
+        if (startDateTime != null) {
+          // Add a date to endDateTime
+          if (rawEnd != null && rawEnd.trim().isNotEmpty) {
+            endDateTime = parseAnchoredEndTime(rawEnd, startDateTime);
+          }
+
+          // fallback if still null or before start
+          if (endDateTime == null || !endDateTime.isAfter(startDateTime!)) {
+            endDateTime = startDateTime?.add(Duration(hours: 1));
+          }
+
+          // Update botResponse
+          botResponse['start_time_expression'] = startDateTime;
+          botResponse['end_time_expression'] = endDateTime;
+
+          // Recurrence rule (if needed)
+          String? frequency = botResponse['recurrence_frequency'];
+          String? interval = botResponse['recurrence_interval'];
+          String? days = botResponse['recurrence_days'];
+
+          List<String>? recurrenceRule;
+
+          if (frequency != null && frequency.trim().isNotEmpty) {
+            String rule = 'RRULE:FREQ=${frequency.toUpperCase()}';
+
+            if (interval != null && interval.trim().isNotEmpty) {
+              rule += ';INTERVAL=$interval';
+            }
+
+            if (days != null && days.trim().isNotEmpty) {
+              rule += ';BYDAY=${days.replaceAll(" ", "")}';
+            }
+
+            recurrenceRule = [rule];
+          }
+
+          print("Recurrence rule: ${recurrenceRule}");
+
+          // Create the actual event
+          final currentEvent = await widget.calendarService.createEvent(
+            botResponse['title'],
+            startDateTime,
+            endDateTime,
+            recurrenceRule,
+          );
+
+          botResponse.addAll({"url": currentEvent?.htmlLink});
+        }
 
         _fetchEvents(); // Refresh events after creating
       } catch (e) {
@@ -115,8 +195,33 @@ class _ChatbotAppState extends State<ChatbotApp> {
 
     setState(() {
       messages.add({
-        "bot": botResponse.isEmpty ? 'No response' : botResponse.toString()
+        "bot": botResponse.isEmpty
+            ? {
+                "Content": "**No Response**",
+                "eventData": null,
+              }
+            : {
+                "Content": "$aiResponse",
+                "eventData": botResponse,
+              }
       });
+    });
+    // Scroll to bottom after new message
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+
+    // Scroll to bottom after frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     });
   }
 
@@ -130,6 +235,12 @@ class _ChatbotAppState extends State<ChatbotApp> {
     );
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose(); // Always dispose controllers!
+    super.dispose();
+  }
+
   /// ✅ Fetch Calendar Events via `CalendarService`
   Future<void> _fetchEvents() async {
     final events = await widget.calendarService.fetchEvents();
@@ -140,14 +251,14 @@ class _ChatbotAppState extends State<ChatbotApp> {
   }
 
   /// ✅ Create a Sample Event (for testing)
-  Future<void> _createSampleEvent() async {
-    await widget.calendarService.createEvent(
-      "Test Meeting",
-      DateTime.now().add(Duration(days: 1, hours: 9)), // Tomorrow at 9 AM
-      DateTime.now().add(Duration(days: 1, hours: 10)), // Tomorrow at 10 AM
-    );
-    _fetchEvents(); // Refresh events after creating
-  }
+  // Future<void> _createSampleEvent() async {
+  //   await widget.calendarService.createEvent(
+  //     "Test Meeting",
+  //     DateTime.now().add(Duration(days: 1, hours: 9)), // Tomorrow at 9 AM
+  //     DateTime.now().add(Duration(days: 1, hours: 10)), // Tomorrow at 10 AM
+  //   );
+  //   _fetchEvents(); // Refresh events after creating
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -215,14 +326,15 @@ class _ChatbotAppState extends State<ChatbotApp> {
   Widget _buildEventsView() {
     return Column(
       children: [
-        ElevatedButton(
-          onPressed: _createSampleEvent,
-          child: Text("Create Sample Event"),
-        ),
+        // ElevatedButton(
+        //   onPressed: _createSampleEvent,
+        //   child: Text("Create Sample Event"),
+        // ),
         Expanded(
           child: _eventTitles.isEmpty
               ? Center(child: Text("No events found"))
               : ListView.builder(
+                  controller: _scrollController,
                   itemCount: _eventTitles.length,
                   itemBuilder: (context, index) {
                     return ListTile(
@@ -238,19 +350,83 @@ class _ChatbotAppState extends State<ChatbotApp> {
 
   Widget _buildChatView() {
     return ListView.builder(
+      controller: _scrollController,
       itemCount: messages.length,
       padding: EdgeInsets.all(8.0),
       itemBuilder: (context, index) {
         final message = messages[index];
         final isUser = message.containsKey('user');
-        return ListTile(
-          title: Text(message.values.first),
-          leading: Icon(
-            isUser ? Icons.person : Icons.android,
-            color: isUser ? Colors.blue : Colors.green,
-          ),
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Column(children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  isUser ? Icons.person : Icons.android,
+                  color: isUser ? Colors.blue : Colors.green,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: FormattedText(
+                    message.values.first["Content"]!,
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+              ],
+            ),
+            (message.values.first["eventData"]?["title"] == null ||
+                    message.values.first["eventData"]
+                            ?["start_time_expression"] ==
+                        null
+                ? Text("")
+                : ElevatedButton(
+                    onPressed: () async {
+                      final url = Uri.parse(
+                          message.values.first["eventData"]["url"] ?? "");
+
+                      //If url can be launched in google calendar then do that, else open in web
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url,
+                            mode: LaunchMode.externalApplication);
+                      } else {
+                        print("Could not launch calendar link");
+                      }
+                    },
+                    child: FormattedText(
+                        "${message.values.first["eventData"]?["title"] ?? ""}\n"
+                        "${message.values.first["eventData"]?["start_time_expression"] ?? ""}\n"
+                        "📅 View in Calendar")))
+          ]),
         );
       },
     );
   }
+
+  // Widget _buildChatView() {
+  //   return ListView.builder(
+  //     itemCount: messages.length,
+  //     padding: EdgeInsets.all(8.0),
+  //     itemBuilder: (context, index) {
+  //       final message = messages[index];
+  //       final isUser = message.containsKey('user');
+  //       return ListTile(
+  //         title: FormattedText(
+  //           message.values.first,
+  //           textAlign: TextAlign.left,
+  //         ),
+  //         leading: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             Icon(
+  //               isUser ? Icons.person : Icons.android,
+  //               color: isUser ? Colors.blue : Colors.green,
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 }
