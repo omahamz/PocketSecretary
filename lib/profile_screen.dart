@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:pocket_secretary/textscanner.dart';
 import 'main.dart';
 import 'googleauth.dart';
 import 'calendar.dart';
@@ -8,12 +9,14 @@ class ProfileScreen extends StatelessWidget {
   final GoogleSignInAccount user;
   final GoogleAuthService authService;
   final CalendarService calendarService;
+  final TextScannerService scannerService;
 
   const ProfileScreen({
     super.key,
     required this.user,
     required this.authService,
     required this.calendarService,
+    required this.scannerService,
   });
 
   @override
@@ -28,7 +31,7 @@ class ProfileScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
-                      ChatbotApp(authService, calendarService),
+                      ChatbotApp(authService, calendarService, scannerService),
                 ),
               );
             },

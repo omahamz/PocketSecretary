@@ -9,6 +9,7 @@ import 'calendar.dart'; // Import the CalendarService
 import 'package:formatted_text/formatted_text.dart';
 import 'package:chrono_dart/chrono_dart.dart' show Chrono;
 import 'package:url_launcher/url_launcher.dart';
+import 'textscanner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +35,7 @@ class _MyAppState extends State<MyApp> {
   final SupabaseClient supabase = Supabase.instance.client;
   late GoogleAuthService _authService;
   late CalendarService _calendarService;
+  late TextScannerService _scannerService;
 
   @override
   void initState() {
@@ -47,9 +49,10 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: _authService.currentUser == null
-          ? SignInScreen(
-              _authService, _calendarService) // Show Sign-In Screen first
-          : ChatbotApp(_authService, _calendarService), // Pass CalendarService
+          ? SignInScreen(_authService, _calendarService,
+              _scannerService) // Show Sign-In Screen first
+          : ChatbotApp(_authService, _calendarService,
+              _scannerService), // Pass CalendarService
     );
   }
 }
@@ -57,8 +60,10 @@ class _MyAppState extends State<MyApp> {
 class ChatbotApp extends StatefulWidget {
   final GoogleAuthService authService;
   final CalendarService calendarService; // Add CalendarService
+  final TextScannerService scannerService;
 
-  const ChatbotApp(this.authService, this.calendarService, {super.key});
+  const ChatbotApp(this.authService, this.calendarService, this.scannerService,
+      {super.key});
 
   @override
   _ChatbotAppState createState() => _ChatbotAppState();
@@ -75,6 +80,7 @@ class _ChatbotAppState extends State<ChatbotApp> {
   String? _userId;
   bool _showEvents = false; // Track which view to show
   final ScrollController _scrollController = ScrollController();
+  late final TextScannerService scannerService = TextScannerService();
 
   @override
   void initState() {
@@ -230,8 +236,8 @@ class _ChatbotAppState extends State<ChatbotApp> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-          builder: (context) =>
-              SignInScreen(widget.authService, widget.calendarService)),
+          builder: (context) => SignInScreen(widget.authService,
+              widget.calendarService, widget.scannerService)),
     );
   }
 
@@ -310,6 +316,18 @@ class _ChatbotAppState extends State<ChatbotApp> {
                       decoration:
                           InputDecoration(hintText: "Type a message..."),
                     ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.camera_alt),
+                    onPressed: () async {
+                      final scannedText =
+                          await scannerService.scanTextFromCamera();
+                      if (scannedText != null) {
+                        setState(() {
+                          _controller.text = scannedText;
+                        });
+                      }
+                    },
                   ),
                   IconButton(
                     icon: Icon(Icons.send),
