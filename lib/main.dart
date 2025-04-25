@@ -43,6 +43,7 @@ class _MyAppState extends State<MyApp> {
     _authService = GoogleAuthService(supabase);
     _calendarService =
         CalendarService(_authService); // Initialize CalendarService
+    _scannerService = TextScannerService();
   }
 
   @override
@@ -319,13 +320,27 @@ class _ChatbotAppState extends State<ChatbotApp> {
                   ),
                   IconButton(
                     icon: Icon(Icons.camera_alt),
+                    tooltip: "Scan using camera",
                     onPressed: () async {
-                      final scannedText =
-                          await scannerService.scanTextFromCamera();
-                      if (scannedText != null) {
+                      final result = await scannerService.scanTextFromCamera();
+                      if (result != null) {
                         setState(() {
-                          _controller.text = scannedText;
+                          _controller.text = result;
                         });
+                        sendMessage();
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.photo_library),
+                    tooltip: "Upload from gallery",
+                    onPressed: () async {
+                      final result = await scannerService.scanTextFromGallery();
+                      if (result != null) {
+                        setState(() {
+                          _controller.text = result;
+                        });
+                        sendMessage();
                       }
                     },
                   ),
