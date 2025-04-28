@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pocket_secretary/textscanner.dart';
 import 'calendar.dart';
 import 'googleauth.dart'; // Import GoogleAuthService
 import 'main.dart'; // Import ChatbotApp to navigate after login
@@ -6,8 +7,10 @@ import 'main.dart'; // Import ChatbotApp to navigate after login
 class SignInScreen extends StatefulWidget {
   final GoogleAuthService authService;
   final CalendarService calendarService;
+  final TextScannerService scannerService;
 
-  const SignInScreen(this.authService, this.calendarService,
+  const SignInScreen(
+      this.authService, this.calendarService, this.scannerService,
       {super.key}); // Accept authService
 
   @override
@@ -28,8 +31,8 @@ class _SignInScreenState extends State<SignInScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-            builder: (context) =>
-                ChatbotApp(widget.authService, widget.calendarService)),
+            builder: (context) => ChatbotApp(widget.authService,
+                widget.calendarService, widget.scannerService)),
       );
     } else {
       ScaffoldMessenger.of(context)

@@ -9,6 +9,7 @@ import 'calendar.dart'; // Import the CalendarService
 import 'package:formatted_text/formatted_text.dart';
 import 'package:chrono_dart/chrono_dart.dart' show Chrono;
 import 'package:url_launcher/url_launcher.dart';
+import 'textscanner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +35,7 @@ class _MyAppState extends State<MyApp> {
   final SupabaseClient supabase = Supabase.instance.client;
   late GoogleAuthService _authService;
   late CalendarService _calendarService;
+  late TextScannerService _scannerService;
 
   @override
   void initState() {
@@ -41,15 +43,17 @@ class _MyAppState extends State<MyApp> {
     _authService = GoogleAuthService(supabase);
     _calendarService =
         CalendarService(_authService); // Initialize CalendarService
+    _scannerService = TextScannerService();
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: _authService.currentUser == null
-          ? SignInScreen(
-              _authService, _calendarService) // Show Sign-In Screen first
-          : ChatbotApp(_authService, _calendarService), // Pass CalendarService
+          ? SignInScreen(_authService, _calendarService,
+              _scannerService) // Show Sign-In Screen first
+          : ChatbotApp(_authService, _calendarService,
+              _scannerService), // Pass CalendarService
     );
   }
 }
@@ -57,8 +61,10 @@ class _MyAppState extends State<MyApp> {
 class ChatbotApp extends StatefulWidget {
   final GoogleAuthService authService;
   final CalendarService calendarService; // Add CalendarService
+  final TextScannerService scannerService;
 
-  const ChatbotApp(this.authService, this.calendarService, {super.key});
+  const ChatbotApp(this.authService, this.calendarService, this.scannerService,
+      {super.key});
 
   @override
   _ChatbotAppState createState() => _ChatbotAppState();
@@ -75,6 +81,8 @@ class _ChatbotAppState extends State<ChatbotApp> {
   String? _userId;
   bool _showEvents = false; // Track which view to show
   final ScrollController _scrollController = ScrollController();
+  late final TextScannerService scannerService = TextScannerService();
+
 
   @override
   void initState() {
@@ -230,8 +238,8 @@ class _ChatbotAppState extends State<ChatbotApp> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-          builder: (context) =>
-              SignInScreen(widget.authService, widget.calendarService)),
+          builder: (context) => SignInScreen(widget.authService,
+              widget.calendarService, widget.scannerService)),
     );
   }
 
@@ -310,6 +318,32 @@ class _ChatbotAppState extends State<ChatbotApp> {
                       decoration:
                           InputDecoration(hintText: "Type a message..."),
                     ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.camera_alt),
+                    tooltip: "Scan using camera",
+                    onPressed: () async {
+                      final result = await scannerService.scanTextFromCamera();
+                      if (result != null) {
+                        setState(() {
+                          _controller.text = result;
+                        });
+                        sendMessage();
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.photo_library),
+                    tooltip: "Upload from gallery",
+                    onPressed: () async {
+                      final result = await scannerService.scanTextFromGallery();
+                      if (result != null) {
+                        setState(() {
+                          _controller.text = result;
+                        });
+                        sendMessage();
+                      }
+                    },
                   ),
                   IconButton(
                     icon: Icon(Icons.send),
