@@ -83,6 +83,7 @@ class _ChatbotAppState extends State<ChatbotApp> {
   final ScrollController _scrollController = ScrollController();
   late final TextScannerService scannerService = TextScannerService();
 
+
   @override
   void initState() {
     super.initState();
