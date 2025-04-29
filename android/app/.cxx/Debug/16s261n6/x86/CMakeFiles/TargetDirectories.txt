@@ -1,0 +1,2 @@
+/home/aphrodite/Documents/aim/PocketSecretary/android/app/.cxx/Debug/16s261n6/x86/CMakeFiles/edit_cache.dir
+/home/aphrodite/Documents/aim/PocketSecretary/android/app/.cxx/Debug/16s261n6/x86/CMakeFiles/rebuild_cache.dir
