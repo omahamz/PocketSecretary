@@ -6,7 +6,7 @@ An AI-powered scheduling assistant that turns everyday language into structured 
 
 **Technology Stack:**
 - Frontend: Flutter Widget Catalog
-- Backend: Python, Firebase Firestore, Hive/Drift
+- Backend: Dart, Supabase, Google Auth
 - API’s: Google Calendar, Gemini
 
 **Helpful Resources:**
