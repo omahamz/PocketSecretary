@@ -6,22 +6,30 @@ import 'util.dart';
 class GeminiChatbot {
   final GenerativeModel model;
 
-  GeminiChatbot(String apiKey, String model)
+  GeminiChatbot(String apiKey, String modelName)
       : model = GenerativeModel(
-          model: model,
+          model: modelName,
           apiKey: apiKey,
         );
 
   Future<String> chat(String message) async {
-    final content = [Content.text(message)];
-    final response = await model.generateContent(content);
     try {
-      final text = response.text ?? "no response"; // fallback if null
-      print(text);
+      final content = [Content.text(message)];
+      final response = await model.generateContent(content);
+      final text = response.text;
+
+      if (text == null || text.isEmpty) {
+        debugPrint('Empty response from Gemini API');
+        return "I'm sorry, I couldn't generate a response at this time.";
+      }
+
       return text;
     } catch (e) {
       debugPrint('Chatbot error: $e');
-      return "no responcse";
+      if (e is GenerativeAIException) {
+        return "API Error: ${e.message}";
+      }
+      return "I encountered an error while processing your request. Please try again.";
     }
   }
 
@@ -29,11 +37,20 @@ class GeminiChatbot {
     try {
       final content = [Content.text(message)];
       final response = await model.generateContent(content);
-      print(response.text);
-      return eventParseing(response.text ?? '');
+      final text = response.text;
+
+      if (text == null || text.isEmpty) {
+        debugPrint('Empty response from Gemini API');
+        return {"error": "No response from AI"};
+      }
+
+      return eventParseing(text);
     } catch (e) {
-      debugPrint('Chatbot error: $e');
-      return {"content": message};
+      debugPrint('Structured chat error: $e');
+      if (e is GenerativeAIException) {
+        return {"error": "API Error: ${e.message}"};
+      }
+      return {"error": "Failed to process the message"};
     }
   }
 }

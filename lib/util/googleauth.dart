@@ -3,8 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 
-class GoogleAuthService {
+class GoogleAuthService extends ChangeNotifier {
   final SupabaseClient supabase;
 
   final GoogleSignIn _googleSignIn;
@@ -29,21 +30,29 @@ class GoogleAuthService {
     try {
       print("signing in...");
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
       if (googleUser == null) {
-        return "User canceled sign-in.";
+        return "Sign-in was cancelled";
       }
 
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-        throw 'Auth tokens are null';
+        return 'Authentication failed: missing tokens';
       }
 
-      await supabase.auth.signInWithIdToken(
+      // First sign out to ensure clean state
+      await supabase.auth.signOut();
+
+      final response = await supabase.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: googleAuth.idToken!,
         accessToken: googleAuth.accessToken!,
       );
+
+      if (response.user == null) {
+        return 'Failed to authenticate with Supabase';
+      }
 
       _user = googleUser;
 
@@ -54,7 +63,7 @@ class GoogleAuthService {
           auth.AccessToken(
             'Bearer',
             googleAuth.accessToken!,
-            DateTime.now().toUtc().add(Duration(hours: 1)),
+            DateTime.now().toUtc().add(const Duration(hours: 1)),
           ),
           null,
           ['https://www.googleapis.com/auth/calendar.events'],
@@ -62,7 +71,8 @@ class GoogleAuthService {
       );
 
       print("User Signed In: ${googleUser.displayName} (${googleUser.email})");
-      return null;
+      notifyListeners();
+      return null; // Success
     } catch (error) {
       print("Google Sign-In Error: $error");
       return error.toString();
