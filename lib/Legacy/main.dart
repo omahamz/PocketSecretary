@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:googleapis/chat/v1.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../util/googleauth.dart';
 import 'signin.dart';
@@ -11,7 +10,6 @@ import 'package:chrono_dart/chrono_dart.dart' show Chrono;
 import 'package:url_launcher/url_launcher.dart';
 import '../util/textscanner.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

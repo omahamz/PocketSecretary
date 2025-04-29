@@ -8,7 +8,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'login_page_model.dart';
 import '/util/googleauth.dart';
-import 'package:go_router/go_router.dart';
 export 'login_page_model.dart';
 
 class LoginPageWidget extends StatefulWidget {

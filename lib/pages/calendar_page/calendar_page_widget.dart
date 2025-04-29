@@ -10,7 +10,6 @@ import 'package:provider/provider.dart';
 import '/util/calendar.dart';
 import '/util/googleauth.dart';
 import 'package:googleapis/calendar/v3.dart' as calendar;
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '/util/message_provider.dart';
 

@@ -39,6 +39,7 @@ class _GeneratingResponsePageWidgetState
   late CalendarService calendarService;
   bool _isProcessing = false;
   final _timeFormat = DateFormat('hh:mm a');
+  final _scrollController = ScrollController();
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -71,6 +72,13 @@ class _GeneratingResponsePageWidgetState
     });
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _model.dispose();
+    super.dispose();
+  }
+
   Future<void> sendMessage() async {
     if (_isProcessing ||
         _model.textController == null ||
@@ -85,6 +93,17 @@ class _GeneratingResponsePageWidgetState
         Provider.of<MessageProvider>(context, listen: false);
     messageProvider.addMessage({
       "user": {"Content": userMessage}
+    });
+
+    // Scroll to bottom after adding user message
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
 
     setState(() {
@@ -164,6 +183,17 @@ class _GeneratingResponsePageWidgetState
         "bot": botResponse.isEmpty
             ? {"Content": aiResponse}
             : {"Content": aiResponse, "eventData": botResponse}
+      });
+
+      // Scroll to bottom after adding bot response
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
       });
 
       setState(() {
@@ -306,21 +336,13 @@ class _GeneratingResponsePageWidgetState
   }
 
   @override
-  void dispose() {
-    _model.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final googleAuthService =
         Provider.of<GoogleAuthService>(context, listen: false);
     final messageProvider = Provider.of<MessageProvider>(context);
 
     // Ensure calendar service is properly initialized
-    if (calendarService == null) {
-      calendarService = CalendarService(googleAuthService);
-    }
+    calendarService ??= CalendarService(googleAuthService);
 
     return Scaffold(
       key: scaffoldKey,
@@ -363,6 +385,7 @@ class _GeneratingResponsePageWidgetState
               child: Padding(
                 padding: EdgeInsetsDirectional.fromSTEB(16.0, 16.0, 16.0, 0.0),
                 child: ListView.builder(
+                  controller: _scrollController,
                   padding: EdgeInsets.zero,
                   scrollDirection: Axis.vertical,
                   itemCount: messageProvider.messages.isEmpty

@@ -1,23 +1,15 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '/util/googleauth.dart';
 import '/util/calendar.dart';
 import '/util/message_provider.dart';
-import '/pages/login_page/login_page_widget.dart';
-import '/pages/generating_response_page/generating_response_page_widget.dart';
-import '/pages/calendar_events_page/calendar_events_page_widget.dart';
-import '/pages/calendar_page/calendar_page_widget.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import 'flutter_flow/flutter_flow_util.dart';
-import 'flutter_flow/nav/nav.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'index.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
