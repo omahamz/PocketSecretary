@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:pocket_secretary/textscanner.dart';
-import 'calendar.dart';
-import 'googleauth.dart'; // Import GoogleAuthService
+import 'package:pocket_secretary/util/textscanner.dart';
+import '../util/calendar.dart';
+import '../util/googleauth.dart'; // Import GoogleAuthService
 import 'main.dart'; // Import ChatbotApp to navigate after login
 
 class SignInScreen extends StatefulWidget {

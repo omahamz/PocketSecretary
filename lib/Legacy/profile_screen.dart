@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:pocket_secretary/textscanner.dart';
+import 'package:pocket_secretary/util/textscanner.dart';
 import 'main.dart';
-import 'googleauth.dart';
-import 'calendar.dart';
+import '../util/googleauth.dart';
+import '../util/calendar.dart';
 
 class ProfileScreen extends StatelessWidget {
   final GoogleSignInAccount user;
