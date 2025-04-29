@@ -54,7 +54,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
         ),
         FFRoute(
           name: CalendarEventsPageWidget.routeName,
-          path: CalendarEventsPageWidget.routePath,
+          path: '/calendarEventsPage',
           builder: (context, params) => CalendarEventsPageWidget(),
         ),
         FFRoute(

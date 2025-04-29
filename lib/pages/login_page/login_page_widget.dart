@@ -1,15 +1,14 @@
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
-import 'dart:ui';
 import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'login_page_model.dart';
 import '/util/googleauth.dart';
+import 'package:go_router/go_router.dart';
 export 'login_page_model.dart';
 
 class LoginPageWidget extends StatefulWidget {
@@ -42,18 +41,10 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
 
   void _checkAuthState() async {
     final session = supabase.auth.currentSession;
-    print(
-        'AUTH DEBUG: Current session: ${session != null ? 'ACTIVE' : 'NULL'}');
-
-    if (session != null) {
-      print('AUTH DEBUG: User ID: ${session.user.id}');
-      print('AUTH DEBUG: User email: ${session.user.email}');
-      print('AUTH DEBUG: Token expires: ${session.expiresAt}');
-
-      if (mounted) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        context.pushReplacementNamed(GeneratingResponsePageWidget.routeName);
-      }
+    if (session != null && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.pushNamed(GeneratingResponsePageWidget.routeName);
+      });
     }
   }
 
@@ -70,19 +61,14 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
 
     try {
       final result = await _googleAuthService.signInWithGoogle();
-      if (result == null) {
-        // null result means success
-        if (mounted) {
-          await Future.delayed(const Duration(milliseconds: 100));
-          context.pushReplacementNamed(GeneratingResponsePageWidget.routeName);
-        }
-      } else {
-        // Non-null result means there was an error message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result)),
-          );
-        }
+      if (result == null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.pushNamed(GeneratingResponsePageWidget.routeName);
+        });
+      } else if (result != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result)),
+        );
       }
     } catch (e) {
       if (mounted) {

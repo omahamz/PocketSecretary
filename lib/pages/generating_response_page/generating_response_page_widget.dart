@@ -12,6 +12,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '/util/chatbot.dart';
 import '/util/textscanner.dart';
 import '/util/calendar.dart';
+import '/util/message_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:chrono_dart/chrono_dart.dart';
@@ -21,7 +22,7 @@ export 'generating_response_page_model.dart';
 class GeneratingResponsePageWidget extends StatefulWidget {
   const GeneratingResponsePageWidget({super.key});
 
-  static String routeName = 'generatingResponsePage';
+  static String routeName = 'GeneratingResponsePage';
   static String routePath = '/generatingResponsePage';
 
   @override
@@ -36,7 +37,6 @@ class _GeneratingResponsePageWidgetState
   late GeminiChatbot eventChatbot;
   late TextScannerService scannerService;
   late CalendarService calendarService;
-  List<Map<String, Map<String, dynamic>>> messages = [];
   bool _isProcessing = false;
   final _timeFormat = DateFormat('hh:mm a');
 
@@ -48,29 +48,46 @@ class _GeneratingResponsePageWidgetState
     _model = createModel(context, () => GeneratingResponsePageModel());
     _model.textController ??= TextEditingController();
     _model.textFieldFocusNode ??= FocusNode();
-    calendarService = Provider.of<CalendarService>(context, listen: false);
 
+    // Initialize services
+    final googleAuthService =
+        Provider.of<GoogleAuthService>(context, listen: false);
+    calendarService = CalendarService(googleAuthService);
+    scannerService = TextScannerService();
+
+    // Initialize chatbots
     chatbot = GeminiChatbot(dotenv.env['GEMINI_API_KEY'] ?? "",
         "gemini-2.0-flash" // Restored original model name
         );
     eventChatbot = GeminiChatbot(dotenv.env['GEMINI_API_KEY'] ?? "",
         'tunedModels/pocketsecretary-2-92sl5cmi8s2j' // Restored original model name
         );
-    scannerService = TextScannerService();
+
+    // Listen for auth state changes
+    googleAuthService.supabase.auth.onAuthStateChange.listen((data) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   Future<void> sendMessage() async {
     if (_isProcessing ||
         _model.textController == null ||
-        _model.textController!.text.isEmpty) return;
+        _model.textController!.text.isEmpty) {
+      return;
+    }
 
     final userMessage = _model.textController!.text;
     _model.textController?.clear();
 
+    final messageProvider =
+        Provider.of<MessageProvider>(context, listen: false);
+    messageProvider.addMessage({
+      "user": {"Content": userMessage}
+    });
+
     setState(() {
-      messages.add({
-        "user": {"Content": userMessage}
-      });
       _isProcessing = true;
     });
 
@@ -93,6 +110,11 @@ class _GeneratingResponsePageWidgetState
             endDateTime = Chrono.parseDate(botResponse['end_time_expression']);
           }
 
+          // If endDateTime is null or before startDateTime, set it to 1 hour after start
+          if (endDateTime == null || !endDateTime.isAfter(startDateTime)) {
+            endDateTime = startDateTime.add(const Duration(hours: 1));
+          }
+
           List<String>? recurrenceRule;
           if (botResponse['recurrence'] != null) {
             String rule =
@@ -110,10 +132,17 @@ class _GeneratingResponsePageWidgetState
             recurrenceRule = [rule];
           }
 
+          // Re-authenticate before creating event
+          final reAuthResult =
+              await calendarService.authService.reAuthenticatClient();
+          if (reAuthResult == null) {
+            throw Exception('Failed to re-authenticate for calendar access');
+          }
+
           final currentEvent = await calendarService.createEvent(
             botResponse['title'],
             startDateTime,
-            endDateTime ?? startDateTime.add(const Duration(hours: 1)),
+            endDateTime,
             recurrenceRule,
           );
 
@@ -122,26 +151,33 @@ class _GeneratingResponsePageWidgetState
           }
         } catch (e) {
           print('Error creating calendar event: $e');
+          messageProvider.addMessage({
+            "bot": {
+              "Content":
+                  "I'm sorry, I encountered an error creating the calendar event: ${e.toString()}"
+            }
+          });
         }
       }
 
+      messageProvider.addMessage({
+        "bot": botResponse.isEmpty
+            ? {"Content": aiResponse}
+            : {"Content": aiResponse, "eventData": botResponse}
+      });
+
       setState(() {
-        messages.add({
-          "bot": botResponse.isEmpty
-              ? {"Content": aiResponse}
-              : {"Content": aiResponse, "eventData": botResponse}
-        });
         _isProcessing = false;
       });
     } catch (e) {
       print('Error processing message: $e');
+      messageProvider.addMessage({
+        "bot": {
+          "Content":
+              "I'm sorry, I encountered an error processing your request."
+        }
+      });
       setState(() {
-        messages.add({
-          "bot": {
-            "Content":
-                "I'm sorry, I encountered an error processing your request."
-          }
-        });
         _isProcessing = false;
       });
     }
@@ -204,27 +240,49 @@ class _GeneratingResponsePageWidgetState
                                     letterSpacing: 0.0,
                                   ),
                         ),
-                      if (eventData['url'] != null)
-                        TextButton(
-                          onPressed: () async {
-                            final url = Uri.parse(eventData['url']);
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url,
-                                  mode: LaunchMode.externalApplication);
-                            }
-                          },
-                          child: Text(
-                            'View in Calendar',
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w500),
-                                  color: Color(0xFF0F91CB),
-                                  letterSpacing: 0.0,
-                                ),
+                      Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          if (eventData['url'] != null)
+                            TextButton(
+                              onPressed: () async {
+                                final url = Uri.parse(eventData['url']);
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(url,
+                                      mode: LaunchMode.externalApplication);
+                                }
+                              },
+                              child: Text(
+                                'View in Calendar',
+                                style: FlutterFlowTheme.of(context)
+                                    .bodyMedium
+                                    .override(
+                                      font: GoogleFonts.inter(
+                                          fontWeight: FontWeight.w500),
+                                      color: Color(0xFF0F91CB),
+                                      letterSpacing: 0.0,
+                                    ),
+                              ),
+                            ),
+                          TextButton(
+                            onPressed: () {
+                              context.pushNamed(
+                                  CalendarEventsPageWidget.routeName);
+                            },
+                            child: Text(
+                              'View All Events',
+                              style: FlutterFlowTheme.of(context)
+                                  .bodyMedium
+                                  .override(
+                                    font: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w500),
+                                    color: Color(0xFF0F91CB),
+                                    letterSpacing: 0.0,
+                                  ),
+                            ),
                           ),
-                        ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -257,6 +315,12 @@ class _GeneratingResponsePageWidgetState
   Widget build(BuildContext context) {
     final googleAuthService =
         Provider.of<GoogleAuthService>(context, listen: false);
+    final messageProvider = Provider.of<MessageProvider>(context);
+
+    // Ensure calendar service is properly initialized
+    if (calendarService == null) {
+      calendarService = CalendarService(googleAuthService);
+    }
 
     return Scaffold(
       key: scaffoldKey,
@@ -264,7 +328,6 @@ class _GeneratingResponsePageWidgetState
       appBar: AppBar(
         backgroundColor: Color(0xFF545459),
         automaticallyImplyLeading: false,
-        // Back button removed - we'll rely on the logout button in actions
         title: Text(
           'Pocket Secretary',
           style: FlutterFlowTheme.of(context).titleLarge.override(
@@ -274,6 +337,12 @@ class _GeneratingResponsePageWidgetState
               ),
         ),
         actions: [
+          IconButton(
+            icon: Icon(Icons.calendar_today, color: Colors.white),
+            onPressed: () async {
+              context.pushNamed(CalendarEventsPageWidget.routeName);
+            },
+          ),
           IconButton(
             icon: Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
@@ -296,7 +365,9 @@ class _GeneratingResponsePageWidgetState
                 child: ListView.builder(
                   padding: EdgeInsets.zero,
                   scrollDirection: Axis.vertical,
-                  itemCount: messages.isEmpty ? 1 : messages.length + 1,
+                  itemCount: messageProvider.messages.isEmpty
+                      ? 1
+                      : messageProvider.messages.length + 1,
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       // Welcome message
@@ -314,7 +385,7 @@ class _GeneratingResponsePageWidgetState
                       );
                     }
 
-                    final message = messages[index - 1];
+                    final message = messageProvider.messages[index - 1];
                     final isUser = message.containsKey('user');
                     final content = message.values.first['Content'] as String;
                     final eventData =

@@ -1,0 +1,2 @@
+C:/Users/Ali Benrami/Documents/aim/PocketSecretary/android/app/.cxx/Debug/s51256i7/x86/CMakeFiles/edit_cache.dir
+C:/Users/Ali Benrami/Documents/aim/PocketSecretary/android/app/.cxx/Debug/s51256i7/x86/CMakeFiles/rebuild_cache.dir

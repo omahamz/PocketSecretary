@@ -4,6 +4,7 @@ import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 class GoogleAuthService extends ChangeNotifier {
   final SupabaseClient supabase;
@@ -80,26 +81,38 @@ class GoogleAuthService extends ChangeNotifier {
   }
 
   Future<int?> reAuthenticatClient() async {
-    final googleUser = await GoogleSignIn(
-      scopes: ['https://www.googleapis.com/auth/calendar.events'],
-    ).signInSilently();
+    try {
+      print("Re-authenticating client...");
+      final googleUser = await _googleSignIn.signInSilently();
+      if (googleUser == null) {
+        print("No user found for silent sign-in");
+        return null;
+      }
 
-    final googleAuth = await googleUser!.authentication;
+      final googleAuth = await googleUser.authentication;
+      if (googleAuth.accessToken == null) {
+        print("No access token available");
+        return null;
+      }
 
-    final authClient = auth.authenticatedClient(
-      http.Client(),
-      auth.AccessCredentials(
-        auth.AccessToken(
-          'Bearer',
-          googleAuth.accessToken!,
-          DateTime.now().toUtc().add(Duration(
-              seconds: 3600)), // Fake expiry is fine for short-lived clients
+      _authClient = auth.authenticatedClient(
+        http.Client(),
+        auth.AccessCredentials(
+          auth.AccessToken(
+            'Bearer',
+            googleAuth.accessToken!,
+            DateTime.now().toUtc().add(const Duration(hours: 1)),
+          ),
+          null,
+          ['https://www.googleapis.com/auth/calendar.events'],
         ),
-        null,
-        ['https://www.googleapis.com/auth/calendar.events'],
-      ),
-    );
-    return 0;
+      );
+      print("Client re-authenticated successfully");
+      return 0;
+    } catch (e) {
+      print("Error re-authenticating client: $e");
+      return null;
+    }
   }
 
   Future<void> signOut() async {

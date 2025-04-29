@@ -4,6 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '/util/googleauth.dart';
 import '/util/calendar.dart';
+import '/util/message_provider.dart';
+import '/pages/login_page/login_page_widget.dart';
+import '/pages/generating_response_page/generating_response_page_widget.dart';
+import '/pages/calendar_events_page/calendar_events_page_widget.dart';
+import '/pages/calendar_page/calendar_page_widget.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
@@ -39,6 +44,7 @@ void main() async {
         ProxyProvider<GoogleAuthService, CalendarService>(
           update: (context, auth, previous) => CalendarService(auth),
         ),
+        ChangeNotifierProvider(create: (_) => MessageProvider()),
       ],
       child: MyApp(),
     ),
@@ -46,6 +52,8 @@ void main() async {
 }
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   // This widget is the root of your application.
   @override
   State<MyApp> createState() => _MyAppState();

@@ -10,6 +10,8 @@ import 'package:formatted_text/formatted_text.dart';
 import 'package:chrono_dart/chrono_dart.dart' show Chrono;
 import 'package:url_launcher/url_launcher.dart';
 import '../util/textscanner.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -152,8 +154,8 @@ class _ChatbotAppState extends State<ChatbotApp> {
           }
 
           // fallback if still null or before start
-          if (endDateTime == null || !endDateTime.isAfter(startDateTime!)) {
-            endDateTime = startDateTime?.add(Duration(hours: 1));
+          if (endDateTime == null || !endDateTime.isAfter(startDateTime)) {
+            endDateTime = startDateTime.add(Duration(hours: 1));
           }
 
           // Update botResponse
@@ -181,7 +183,7 @@ class _ChatbotAppState extends State<ChatbotApp> {
             recurrenceRule = [rule];
           }
 
-          print("Recurrence rule: ${recurrenceRule}");
+          print("Recurrence rule: $recurrenceRule");
 
           // Create the actual event
           final currentEvent = await widget.calendarService.createEvent(
@@ -208,7 +210,7 @@ class _ChatbotAppState extends State<ChatbotApp> {
                 "eventData": null,
               }
             : {
-                "Content": "$aiResponse",
+                "Content": aiResponse,
                 "eventData": botResponse,
               }
       });
@@ -377,6 +379,14 @@ class _ChatbotAppState extends State<ChatbotApp> {
                   },
                 ),
         ),
+        ElevatedButton(
+          onPressed: () => fetchEventsExample(context),
+          child: Text('Fetch Events'),
+        ),
+        ElevatedButton(
+          onPressed: () => addEventExample(context),
+          child: Text('Add Event'),
+        ),
       ],
     );
   }
@@ -462,4 +472,37 @@ class _ChatbotAppState extends State<ChatbotApp> {
   //     },
   //   );
   // }
+}
+
+Future<void> fetchEventsExample(BuildContext context) async {
+  final googleAuthService =
+      Provider.of<GoogleAuthService>(context, listen: false);
+  final calendarService = CalendarService(googleAuthService);
+
+  final events = await calendarService.fetchEvents();
+  // Now you can use the events list
+  for (var event in events) {
+    print(event.summary); // Print event titles
+  }
+}
+
+Future<void> addEventExample(BuildContext context) async {
+  final googleAuthService =
+      Provider.of<GoogleAuthService>(context, listen: false);
+  final calendarService = CalendarService(googleAuthService);
+
+  final title = "My New Event";
+  final start =
+      DateTime.now().add(Duration(days: 1, hours: 9)); // Tomorrow at 9 AM
+  final end =
+      DateTime.now().add(Duration(days: 1, hours: 10)); // Tomorrow at 10 AM
+
+  final createdEvent = await calendarService.createEvent(
+    title,
+    start,
+    end,
+    null, // No recurrence
+  );
+
+  print('Created event: ${createdEvent?.summary}');
 }

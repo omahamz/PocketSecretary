@@ -9,23 +9,35 @@ class CalendarService {
 
   // Fetch User's Calendar Events
   Future<List<calendar.Event>> fetchEvents() async {
+    print("Fetching events...");
     final auth.AuthClient? client = authService.getAuthClient();
     if (client == null) {
       print("User is not authenticated, skipping fetch.");
       return [];
     }
 
+    print("Auth client obtained, fetching events...");
     final calendar.CalendarApi calendarApi = calendar.CalendarApi(client);
-    final events = await calendarApi.events.list("primary");
-
-    print("Fetched ${events.items?.length ?? 0} events.");
-    return events.items ?? [];
+    try {
+      final events = await calendarApi.events.list("primary");
+      print("Fetched ${events.items?.length ?? 0} events.");
+      return events.items ?? [];
+    } catch (e) {
+      print("Error fetching events: $e");
+      rethrow;
+    }
   }
 
   // Create a Google Calendar Event
   Future<calendar.Event?> createEvent(String title, DateTime start,
       DateTime? end, List<String>? recurrence) async {
-    authService.reAuthenticatClient();
+    print("Creating event...");
+    final reAuthResult = await authService.reAuthenticatClient();
+    if (reAuthResult == null) {
+      print("Re-authentication failed, cannot create event");
+      return null;
+    }
+
     final auth.AuthClient? client = authService.getAuthClient();
     if (client == null) {
       print("User is not authenticated, skipping event creation.");
@@ -44,11 +56,15 @@ class CalendarService {
         ..timeZone = "UTC")
       ..recurrence = recurrence;
 
-    print("Start: ${start}\n End: ${end}\n Recurrence: ${recurrence}");
-    final createdEvent = await calendarApi.events.insert(event, "primary");
-
-    print("Event created: ${createdEvent.htmlLink}");
-    return createdEvent;
+    print("Start: $start\n End: $end\n Recurrence: $recurrence");
+    try {
+      final createdEvent = await calendarApi.events.insert(event, "primary");
+      print("Event created: ${createdEvent.htmlLink}");
+      return createdEvent;
+    } catch (e) {
+      print("Error creating event: $e");
+      return null;
+    }
   }
 
   /// ✅ Update an Existing Event
